@@ -1,5 +1,7 @@
-# Elo7
-Repositório referente ao teste prático para o processo seletivo Elo7
+![](https://images.elo7.com.br/assets/v3/desktop/svg/logo-elo7.svg)
+
+### Repositório referente ao teste prático para o processo seletivo Elo7
+#
 
 
 ## Considerações

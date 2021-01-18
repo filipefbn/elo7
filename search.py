@@ -18,6 +18,7 @@ class InvertedIndex:
         self.stemming = stemming
         self.remove_stopwords = remove_stopwords
         self.dictionary = defaultdict(list)
+        self.doc_count = 0
         
         if not force_reindex:
             print('Loading index...')
@@ -26,12 +27,16 @@ class InvertedIndex:
             print('Building index...')
             with open(path, 'r', encoding='utf-8') as f:
                 next(f) # Skip header
+                prod_set = set()
             for line in f.readlines():
                 entry = line.rstrip().split(',')
                 product_id = entry[0]
-                title = entry[5]
-                self.index_product(product_id, title)
-                
+                if product_id not in prod_set:
+                    prod_set.add(product_id)
+                    title = entry[5]
+                    self.doc_count += 1
+                    self.index_product(product_id, title)
+        
         print('Done!')
                 
     def index_product(self, product_id, title):
@@ -78,8 +83,9 @@ class InvertedIndex:
 
 
 class BM25Ranker:
-    def __init__(self, parameters):
-        pass
+    def __init__(self, parameters={'k1': 1.2, 'b': 0.75}):
+        self.k1 = parameters['k1']
+        self.b = parameters['b']
 
     def rank(self, query):
         pass
