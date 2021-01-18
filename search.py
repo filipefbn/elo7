@@ -1,6 +1,7 @@
 import nltk
 import unicodedata
 import math
+import pickle
 from statistics import mean
 from collections import defaultdict
 
@@ -44,10 +45,9 @@ class InvertedIndex:
         print('Done!')
                 
     def index_product(self, product_id, title):
-        tokens = nltk.word_tokenize(title, language='portuguese')
-        tokens = text_processing(tokens, self.normalization, self.accents, self.stemming, self.remove_stopwords)
+        tokens = text_processing(title, self.normalization, self.accents, self.stemming, self.remove_stopwords)
         self.doc_lengths[product_id] = len(tokens)
-        
+
         for token in tokens:                 
             product_list = [product[0] for product in self.dictionary[token]]
 
@@ -88,24 +88,64 @@ class InvertedIndex:
 
 
 class BM25Ranker:
-    def __init__(self, parameters={'k1': 1.2, 'b': 0.75}):
+    """
+    Okapi BM25 model inspired by Lucene's implementation.
+    Reference: 
+    https://www.elastic.co/blog/practical-bm25-part-2-the-bm25-algorithm-and-its-variables
+    """
+
+    def __init__(self, parameters={'k1': 1.2, 'b': 0.75}): 
         self.k1 = parameters['k1']
         self.b = parameters['b']
 
     def rank(self, query):
         pass
 
+    def score(self, tf, df, doc_count, doc_len, avg_doc_len):
+        idf = math.log(1 + ((doc_count - df + 0.5) / (df + 0.5)))
+        num = tf * (self.k1 + 1)
+        den = tf + (self.k1 * (1 - self.b + (self.b * doc_len / avg_doc_len)))
+        return idf * num / den
+
+
 class Search:
     def __init__(self, inverted_index, ranker):
         self.inverted_index = inverted_index
         self.ranker = ranker
 
+    def rank_documents(self, tokens):
+        # Global "constant" values
+        doc_count = self.inverted_index.doc_count
+        avg_doc_len = self.inverted_index.avg_doc_length
+        
+        #Scoring
+        document_scores = defaultdict(float)
+        for term in tokens:
+            if self.inverted_index.dictionary[term]:
+                term_postings = self.inverted_index.dictionary[term]
+                df = len(term_postings)
+                for product_id, tf in term_postings:
+                    doc_len = self.inverted_index.doc_lengths[product_id]
+                    score = self.ranker.score(tf, df, doc_count, doc_len, avg_doc_len)
+                    document_scores[product_id] += score
+        
+        return sorted(list(document_scores.items()), key=lambda x:x[1], reverse=True)
+
+    def process_query(self, query):
+        # Process query with the same settings as inverted index
+        tokens = text_processing(query, self.inverted_index.normalization, self.inverted_index.accents,
+                                 self.inverted_index.stemming, self.inverted_index.remove_stopwords)
+
+        return self.rank_documents(tokens)
+
+
 
 # Helper functions                
 
-def text_processing(tokens,  normalization, accents, stemming, 
+def text_processing(text, normalization, accents, stemming, 
                     remove_stopwords):
-    "Performs common text preprocessing operations."    
+    "Performs common text preprocessing operations."
+    tokens = nltk.word_tokenize(text, language='portuguese')
     if normalization:
             tokens = [token.lower() for token in tokens if token.isalpha()]
     if remove_stopwords:
@@ -127,11 +167,3 @@ def remove_accents(text):
         return [unicodedata.normalize('NFKD', token).encode('ascii', 'ignore').decode('utf-8') for token in text]
     else:
         return unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8')
-
-def idf(df_term, total_doc_count):
-    """
-    Computes IDF according to Lucene's implementation.
-    Reference: 
-    https://www.elastic.co/blog/practical-bm25-part-2-the-bm25-algorithm-and-its-variables
-    """
-    return math.log(1 + ((total_doc_count - df_term + 0.5) / (df_term + 0.5)))
