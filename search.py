@@ -32,14 +32,14 @@ class InvertedIndex:
             with open(path, 'r', encoding='utf-8') as f:
                 next(f) # Skip header
                 prod_set = set()
-            for line in f.readlines():
-                entry = line.rstrip().split(',')
-                product_id = entry[0]
-                if product_id not in prod_set:
-                    prod_set.add(product_id)
-                    title = entry[5]
-                    self.doc_count += 1
-                    self.index_product(product_id, title)
+                for line in f.readlines():
+                    entry = line.rstrip().split(',')
+                    product_id = entry[0]
+                    if product_id not in prod_set:
+                        prod_set.add(product_id)
+                        title = entry[5]
+                        self.doc_count += 1
+                        self.index_product(product_id, title)
         
         self.avg_doc_length = mean(self.doc_lengths.values())
         print('Done!')
@@ -69,6 +69,9 @@ class InvertedIndex:
                 self.accents = data['accents']
                 self.stemming = data['stemming']
                 self.remove_stopwords = data['remove_stopwords']
+                self.doc_count = data['doc_count']
+                self.doc_lengths = data['doc_lengths']
+                self.avg_doc_length = data['avg_doc_length']
         except:
             print('Could not load index.')
     
@@ -79,7 +82,10 @@ class InvertedIndex:
                          'normalization': self.normalization,
                          'accents': self.accents,
                          'stemming': self.stemming,
-                         'remove_stopwords': self.remove_stopwords}
+                         'remove_stopwords': self.remove_stopwords,
+                         'doc_count': self.doc_count,
+                         'doc_lengths': self.doc_lengths,
+                         'avg_doc_length': self.avg_doc_length}
 
             with open(path, 'wb') as f:
                 pickle.dump(save_dict, f)
@@ -97,9 +103,6 @@ class BM25Ranker:
     def __init__(self, parameters={'k1': 1.2, 'b': 0.75}): 
         self.k1 = parameters['k1']
         self.b = parameters['b']
-
-    def rank(self, query):
-        pass
 
     def score(self, tf, df, doc_count, doc_len, avg_doc_len):
         idf = math.log(1 + ((doc_count - df + 0.5) / (df + 0.5)))
@@ -146,6 +149,14 @@ def text_processing(text, normalization, accents, stemming,
                     remove_stopwords):
     "Performs common text preprocessing operations."
     tokens = nltk.word_tokenize(text, language='portuguese')
+    
+    # Handling hyphenization
+    for token in tokens:
+        hyphen_split = token.split('-')
+        for new_token in hyphen_split:
+            if new_token not in tokens:
+                tokens.append(new_token)
+
     if normalization:
             tokens = [token.lower() for token in tokens if token.isalpha()]
     if remove_stopwords:
