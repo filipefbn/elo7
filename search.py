@@ -1,6 +1,7 @@
 import nltk
 import unicodedata
 import math
+from statistics import mean
 from collections import defaultdict
 
 nltk.download('punkt') 
@@ -20,7 +21,8 @@ class InvertedIndex:
         self.remove_stopwords = remove_stopwords
         self.dictionary = defaultdict(list)
         self.doc_count = 0
-        
+        self.doc_lengths = {}
+
         if not force_reindex:
             print('Loading index...')
             self.load_index()
@@ -38,12 +40,14 @@ class InvertedIndex:
                     self.doc_count += 1
                     self.index_product(product_id, title)
         
+        self.avg_doc_length = mean(self.doc_lengths.values())
         print('Done!')
                 
     def index_product(self, product_id, title):
         tokens = nltk.word_tokenize(title, language='portuguese')
         tokens = text_processing(tokens, self.normalization, self.accents, self.stemming, self.remove_stopwords)
-
+        self.doc_lengths[product_id] = len(tokens)
+        
         for token in tokens:                 
             product_list = [product[0] for product in self.dictionary[token]]
 
