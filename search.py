@@ -1,5 +1,6 @@
 import nltk
 import unicodedata
+import math
 from collections import defaultdict
 
 nltk.download('punkt') 
@@ -122,3 +123,11 @@ def remove_accents(text):
         return [unicodedata.normalize('NFKD', token).encode('ascii', 'ignore').decode('utf-8') for token in text]
     else:
         return unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8')
+
+def idf(df_term, total_doc_count):
+    """
+    Computes IDF according to Lucene's implementation.
+    Reference: 
+    https://www.elastic.co/blog/practical-bm25-part-2-the-bm25-algorithm-and-its-variables
+    """
+    return math.log(1 + ((total_doc_count - df_term + 0.5) / (df_term + 0.5)))
