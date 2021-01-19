@@ -11,9 +11,7 @@ nltk.download('rslp')
 path = 'elo7_recruitment_dataset.csv'
 
 class InvertedIndex:
-    """
-    Creates an inverted index object from the given dataset.
-    """
+    """Creates an inverted index object from the given dataset."""
     def __init__(self, data_path, normalization=True, accents=False, stemming=True,
                  remove_stopwords=True, force_reindex=False):
         self.normalization = normalization
@@ -45,6 +43,7 @@ class InvertedIndex:
         print('Done!')
                 
     def index_product(self, product_id, title):
+        """Indexes a single product given its title."""
         tokens = text_processing(title, self.normalization, self.accents, self.stemming, self.remove_stopwords)
         self.doc_lengths[product_id] = len(tokens)
 
@@ -94,8 +93,8 @@ class InvertedIndex:
 
 
 class BM25Ranker:
-    """
-    Okapi BM25 model inspired by Lucene's implementation.
+    """Okapi BM25 model inspired by Lucene's implementation.
+
     Reference: 
     https://www.elastic.co/blog/practical-bm25-part-2-the-bm25-algorithm-and-its-variables
     """
@@ -135,7 +134,7 @@ class Search:
         return sorted(list(document_scores.items()), key=lambda x:x[1], reverse=True)
 
     def process_query(self, query):
-        # Process query with the same settings as inverted index
+        """Processes query with the same settings as inverted index."""
         tokens = text_processing(query, self.inverted_index.normalization, self.inverted_index.accents,
                                  self.inverted_index.stemming, self.inverted_index.remove_stopwords)
 
@@ -147,7 +146,7 @@ class Search:
 
 def text_processing(text, normalization, accents, stemming, 
                     remove_stopwords):
-    "Performs common text preprocessing operations."
+    """Performs common text preprocessing operations."""
     tokens = nltk.word_tokenize(text, language='portuguese')
     
     # Handling hyphenization
@@ -170,8 +169,8 @@ def text_processing(text, normalization, accents, stemming,
     return tokens
 
 def remove_accents(text):
-    """
-    Removes Portuguese accents from input text.
+    """Removes Portuguese accents from input text.
+
     Example accents: êóàãç
     """
     if type(text) == list:
